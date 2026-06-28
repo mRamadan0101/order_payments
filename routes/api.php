@@ -27,13 +27,9 @@ Route::group(['middleware' => 'api'], function () {
     Route::group(['middleware' => 'auth:api'], function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('refresh', [AuthController::class, 'refresh']);
-        Route::group(['prefix' => 'orders'], function () {
-            Route::get('/', [OrderController::class, 'index']);
-            Route::post('/', [OrderController::class, 'store']);
-            Route::get('/{order}', [OrderController::class, 'show'])->where('order', '[0-9]+');
-            Route::put('/{order}', [OrderController::class, 'update'])->where('order', '[0-9]+');
-            Route::delete('/{order}', [OrderController::class, 'destroy'])->where('order', '[0-9]+');
-        });
+
+        Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+
         Route::apiResource('payments', PaymentController::class)->only(['index', 'show', 'store']);
     });
 });
