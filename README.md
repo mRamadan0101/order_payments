@@ -1,66 +1,264 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Extendable Order & Payment Management API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel REST API for managing orders and payments with JWT authentication and an extensible payment gateway architecture using the **Strategy pattern**.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- JWT authentication (register, login, logout, refresh, profile)
+- Order CRUD with automatic total calculation
+- Payment processing through pluggable gateways
+- Input validation with meaningful error messages
+- Paginated list endpoints
+- Unit and feature tests
+- Postman collection for API documentation
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2+
+- Composer
+- SQLite (default) or MySQL
+- PHP extensions: `pdo_sqlite` or `pdo_mysql`, `mbstring`, `openssl`
 
-## Learning Laravel
+## Setup
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+# Clone the repository and install dependencies
+composer install
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Copy environment file
+cp .env.example .env
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Generate application key (if not already generated)
+php artisan key:generate
 
-## Laravel Sponsors
+# Generate JWT secret
+php artisan jwt:secret
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Configure database in .env (SQLite is default)
+# DB_CONNECTION=sqlite
+# DB_DATABASE=/absolute/path/to/database/database.sqlite
 
-### Premium Partners
+# Configure payment gateway credentials
+CREDIT_CARD_API_KEY=your_credit_card_api_key
+CREDIT_CARD_SECRET=your_credit_card_secret
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# Run migrations
+php artisan migrate
 
-## Contributing
+# Start the development server
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Base API URL: `http://localhost:8000/api`
 
-## Code of Conduct
+## API Endpoints
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Authentication
 
-## Security Vulnerabilities
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Login and receive JWT token |
+| GET | `/api/auth/me` | Get authenticated user profile |
+| POST | `/api/auth/logout` | Invalidate current token |
+| POST | `/api/auth/refresh` | Refresh JWT token |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Orders (requires JWT)
 
-## License
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/orders` | List orders (`?status=pending\|confirmed\|cancelled`) |
+| POST | `/api/orders` | Create order |
+| GET | `/api/orders/{id}` | Show order |
+| PUT/PATCH | `/api/orders/{id}` | Update order |
+| DELETE | `/api/orders/{id}` | Delete order (only if no payments exist) |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Payments (requires JWT)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/payments/gateways` | List available payment gateways |
+| GET | `/api/payments` | List payments (`?order_id=1`) |
+| POST | `/api/payments` | Process payment for an order |
+| GET | `/api/payments/{id}` | Show payment details |
+
+## Business Rules
+
+1. Orders can have statuses: `pending`, `confirmed`, `cancelled`
+2. Payments can only be processed for **confirmed** orders
+3. Orders **cannot be deleted** if they have associated payments
+4. Order total is calculated automatically from item quantities and prices
+
+## Payment Gateway Extensibility
+
+The payment system uses the **Strategy pattern** to keep gateway logic isolated and easy to extend.
+
+### Architecture
+
+```
+PaymentGatewayInterface
+├── CreditCardGateway
+├── PayPalGateway
+└── (your new gateway)
+
+PaymentGatewayManager  → resolves gateway by payment method
+PaymentService         → orchestrates payment processing
+```
+
+### Configuration
+
+Gateway credentials are configured in `.env` and mapped through `config/payment.php`:
+
+```php
+'gateways' => [
+    'credit_card' => [
+        'api_key' => env('CREDIT_CARD_API_KEY'),
+        'secret' => env('CREDIT_CARD_SECRET'),
+    ],
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+    ],
+],
+```
+
+### How to Add a New Gateway
+
+1. **Add enum value** in `app/Enums/PaymentMethod.php`:
+   ```php
+   case Stripe = 'stripe';
+   ```
+
+2. **Create gateway class** implementing `PaymentGatewayInterface`:
+   ```php
+   namespace App\Services\PaymentGateways;
+
+   class StripeGateway implements PaymentGatewayInterface
+   {
+       public function getName(): string
+       {
+           return 'stripe';
+       }
+
+       public function process(Order $order, array $payload = []): PaymentGatewayResult
+       {
+           // Read config('payment.gateways.stripe.*')
+           // Call Stripe API (or simulate)
+           // Return PaymentGatewayResult
+       }
+   }
+   ```
+
+3. **Register gateway** in `PaymentGatewayManager::__construct()`:
+   ```php
+   $this->register(new StripeGateway());
+   ```
+
+4. **Add config** in `config/payment.php` and `.env`:
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   ```
+
+5. **Update validation** in `ProcessPaymentRequest` if the gateway needs specific payload fields.
+
+6. **Add tests** in `tests/Unit/PaymentGatewayTest.php` and `tests/Feature/PaymentTest.php`.
+
+No changes are required in controllers or `PaymentService` beyond registration.
+
+## Example Requests
+
+### Register
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+
+### Create Order
+
+```http
+POST /api/orders
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "customer_name": "Jane Doe",
+  "customer_email": "jane@example.com",
+  "items": [
+    { "product_name": "Laptop", "quantity": 1, "price": 999.99 }
+  ]
+}
+```
+
+### Process Payment
+
+```http
+POST /api/payments
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "order_id": 1,
+  "payment_method": "credit_card",
+  "gateway_payload": {
+    "card_number": "4242424242424242"
+  }
+}
+```
+
+## Testing
+
+```bash
+php artisan test
+```
+
+Tests cover authentication, order management, payment business rules, and gateway logic.
+
+## Postman Collection
+
+Import the collection from:
+
+`docs/Order Payments.postman_collection.json`
+
+1. Import into Postman
+2. Set `base_url` variable (default: `http://localhost:8000/api`)
+3. Run **Login** — the token is saved automatically to `{{accessToken}}`
+4. Use the Orders and Payments folders
+
+## Postman Documentation
+
+`https://documenter.getpostman.com/view/9042950/2sBXwyGSjJ`
+
+
+## Assumptions
+
+- Payment gateways are **simulated** for demonstration (no real external API calls)
+- Credit card ending in `0000` simulates a declined payment
+- PayPal email containing `fail` simulates a failed authorization
+- Orders belong to the authenticated user who created them
+- JWT is provided via `Authorization: Bearer {token}` header
+
+## Project Structure
+
+```
+app/
+├── Enums/                  # OrderStatus, PaymentStatus, PaymentMethod
+├── Http/
+│   ├── Controllers/Api/    # Auth, Order, Payment controllers
+│   ├── Requests/           # Form request validation
+│   └── Resources/          # API response transformers
+├── Models/                 # User, Order, OrderItem, Payment
+└── Services/
+    ├── OrderService.php
+    ├── PaymentService.php
+    └── PaymentGateways/    # Strategy pattern implementation
+```

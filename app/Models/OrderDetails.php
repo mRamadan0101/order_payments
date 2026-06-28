@@ -10,4 +10,7 @@ class OrderDetails extends Model
 {
     use HasFactory;
     use SoftDeletes;
+
+    protected $guarded = [];
+    protected $table = 'order_details';
 }
